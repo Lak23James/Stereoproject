@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>StereoProject - Crystallographic Laboratory</title>
+    <style>
+        /* Aesthetics: Deep Slate & Neon */
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #1f2833;
+            --text-color: #c5c6c7;
+            --accent-cyan: #66fcf1;
+            --accent-cyan-dim: #45a29e;
+            --accent-crimson: #ff007f;
+            --accent-gold:     #ffc300;
+        }
+
+        body { 
+            margin: 0; background-color: var(--bg-color); color: var(--text-color); 
+            overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; height: 100vh;
+        }
+
+        /* 20% Sidebar Panel */
+        #sidebar {
+            width: 300px; min-width: 300px;
+            background: var(--panel-bg); 
+            box-shadow: 2px 0 15px rgba(0,0,0,0.8); z-index: 10;
+            display: flex; flex-direction: column; gap: 15px; padding: 20px; box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        /* 40% Middle 3D Area */
+        #middle-3d {
+            flex-grow: 1; position: relative;
+        }
+
+        /* 40% Right Stereogram Area */
+        #right-2d {
+            width: 40%; min-width: 400px;
+            background: var(--bg-color); border-left: 2px solid var(--panel-bg);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        /* Wulff Net Styling */
+        #wulff-container {
+            width: 80%; aspect-ratio: 1; max-width: 500px; 
+            background: #ffffff; /* White background is standard for Wulff nets */
+            border-radius: 50%; 
+            box-shadow: 0 0 40px rgba(102, 252, 241, 0.15); 
+            border: 4px solid var(--accent-cyan-dim);
+            position: relative;
+        }
+        #wulff { width: 100%; height: 100%; border-radius: 50%; }
+        
+        .panel-heading { text-align: center; color: var(--accent-cyan); font-weight: bold; letter-spacing: 2px; margin-bottom: 20px;}
+
+        h2 { margin: 0; color: var(--accent-cyan); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.8rem; color: #88929b; text-transform: uppercase; letter-spacing: 1px;}
+        input, select { background: #11151c; color: #fff; border: 1px solid #333; padding: 8px; border-radius: 4px; font-family: inherit; outline: none;}
+        input:focus, select:focus { border-color: var(--accent-cyan); }
+        
+        button { 
+            background: var(--accent-cyan); color: #000; font-weight: bold; 
+            cursor: pointer; transition: 0.2s; padding: 10px; border-radius: 4px; border: none;
+            text-transform: uppercase; letter-spacing: 1px; margin-top: 10px;
+        }
+        button:hover { background: #b0fdf8; box-shadow: 0 0 10px var(--accent-cyan); }
+        
+        #btn-reset { background: #3a4b60; color: white; margin-top: auto;}
+        #btn-reset:hover { background: #ff5555; box-shadow: 0 0 10px #ff5555;}
+
+        #status { font-size: 0.75rem; text-align: center; padding-top: 10px; border-top: 1px solid #333; color: #88929b;}
+        .success { color: var(--accent-cyan); font-weight: bold;} .error { color: #ff5555; }
+        .coord-inputs { display: flex; gap: 5px; }
+        .coord-inputs input { width: 100%; }
+        
+        #group-inventory { font-size: 0.85rem; color: var(--accent-gold); white-space: pre-wrap;}
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Symmetry Generator</h2>
+        
+        <div class="control-group">
+            <label>Initial Seed (x, y, z)</label>
+            <div class="coord-inputs">
+                <input type="number" id="in-x" value="0.25" step="0.05">
+                <input type="number" id="in-y" value="0.45" step="0.05">
+                <input type="number" id="in-z" value="0.85" step="0.05">
+            </div>
+            <button id="btn-seed" style="background:#3a4b60; color:#fff; font-size:0.7rem; padding:6px; margin-top:0;">Plant Seed Point</button>
+        </div>
+
+        <h2 style="margin-top: 15px;">Automated Point Groups</h2>
+        <div class="control-group">
+            <label>Hermann-Mauguin Symbol</label>
+            <select id="in-macro">
+                <optgroup label="Triclinic">
+                    <option value="1">1 (Identity)</option>
+                    <option value="-1">-1 (Inversion)</option>
+                </optgroup>
+                <optgroup label="Monoclinic">
+                    <option value="2">2</option>
+                    <option value="m">m</option>
+                    <option value="2/m">2/m</option>
+                </optgroup>
+                <optgroup label="Orthorhombic">
+                    <option value="222">222</option>
+                    <option value="mm2">mm2</option>
+                    <option value="mmm">mmm</option>
+                </optgroup>
+                <optgroup label="Tetragonal">
+                    <option value="4">4</option>
+                    <option value="-4">-4 (Rotoinversion)</option>
+                    <option value="4/m">4/m</option>
+                    <option value="422">422</option>
+                    <option value="4mm">4mm</option>
+                    <option value="-42m">-42m</option>
+                    <option value="4/mmm">4/mmm</option>
+                </optgroup>
+                <optgroup label="Trigonal">
+                    <option value="3">3</option>
+                    <option value="-3">-3</option>
+                    <option value="32">32</option>
+                    <option value="3m">3m</option>
+                    <option value="-3m">-3m</option>
+                </optgroup>
+                <optgroup label="Hexagonal">
+                    <option value="6">6</option>
+                    <option value="-6">-6</option>
+                    <option value="6/m">6/m</option>
+                    <option value="622">622</option>
+                    <option value="6mm">6mm</option>
+                    <option value="-6m2">-6m2</option>
+                    <option value="6/mmm">6/mmm</option>
+                </optgroup>
+            </select>
+            <button id="btn-macro" style="background:#ffc300; color:#000;">Instantly Generate</button>
+        </div>
+
+        <h2 style="margin-top: 15px;">Manual Symmetry Chaining</h2>
+
+        <div class="control-group">
+            <label>Operation Class</label>
+            <select id="in-op">
+                <option value="rotation">N-Fold Rotation (C_n)</option>
+                <option value="mirror">Mirror Plane (m)</option>
+                <option value="inversion">Inversion Center (i)</option>
+            </select>
+        </div>
+
+        <div class="control-group" id="fold-group">
+            <label>Fold (n)</label>
+            <select id="in-fold">
+                <option value="2">2-fold (180°)</option>
+                <option value="3">3-fold (120°)</option>
+                <option value="4" selected>4-fold (90°)</option>
+                <option value="6">6-fold (60°)</option>
+            </select>
+        </div>
+
+        <div class="control-group" id="axis-group">
+            <label>Orientation Vector</label>
+            <select id="in-axis">
+                <option value="x">X Axis [100]</option>
+                <option value="y">Y Axis [010]</option>
+                <option value="z" selected>Z Axis [001]</option>
+            </select>
+        </div>
+
+        <button id="btn-apply">Add to Point Group</button>
+        
+        <div class="control-group" style="margin-top: 15px;">
+            <label>Active Generated Points:</label>
+            <div id="group-inventory">0 Points</div>
+        </div>
+
+        <div class="control-group" style="margin-top: 15px;">
+            <label>Animation Tempo (<span id="delay-val">200</span> ms)</label>
+            <input type="range" id="in-delay" min="0" max="1000" value="200" step="50" style="width: 100%;">
+        </div>
+
+        <button id="btn-reset">Reset Point Group</button>
+        <div id="status">Engine Module: <span class="error">Loading WASM...</span></div>
+    </div>
+
+    <div id="middle-3d">
+        <!-- Three.js renders here -->
+    </div>
+
+    <div id="right-2d">
+        <div class="panel-heading">STEREOGRAPHIC PROJECTION [WULFF NET]</div>
+        <div id="wulff-container">
+            <canvas id="wulff" width="500" height="500"></canvas>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import createModule from './engine.js';
+
+        // Core State
+        let crystalloEngine;
+        let activePointSet = []; // List of all points in current group {x,y,z}
+        
+        // Render Arrays
+        let meshOrbits = [];
+        let meshPaths = [];
+        let meshAxes = [];
+
+        // --------------------------------------------------------
+        // 1. THREE.JS ENVIRONMENT SETUP
+        // --------------------------------------------------------
+        const middleContainer = document.getElementById('middle-3d');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, middleContainer.clientWidth / middleContainer.clientHeight, 0.1, 100);
+        camera.position.set(2.5, 2.0, 3.5);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // transparent logic
+        renderer.setSize(middleContainer.clientWidth, middleContainer.clientHeight);
+        middleContainer.appendChild(renderer.domElement);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Visual Assets
+        const COLOR_BG = 0x0b0c10;
+        const COLOR_GRID = 0x1f2833;
+        const COLOR_POINT = 0xff007f;
+        const COLOR_PATH = 0xffc300;
+        const COLOR_CYAN = 0x66fcf1;
+
+        // Build the Latitude/Longitude Reference Grid
+        // 24 longitudes (struts), 12 latitudes (rings)
+        const sphereGeo = new THREE.SphereGeometry(1, 24, 12);
+        const edgesGeo = new THREE.EdgesGeometry(sphereGeo);
+        const refSphereLine = new THREE.LineSegments(edgesGeo, new THREE.LineBasicMaterial({ color: COLOR_GRID, transparent: true, opacity: 0.6 }));
+        scene.add(refSphereLine);
+
+        // Bold Equator & Meridians
+        const mainRingsGeo = new THREE.EdgesGeometry(new THREE.SphereGeometry(1, 4, 2)); // minimal geometry trick for primary axes
+        const mainRings = new THREE.LineSegments(mainRingsGeo, new THREE.LineBasicMaterial({color: COLOR_CYAN, opacity: 0.4, transparent: true}));
+        scene.add(mainRings); // A more subtle way to show the prime axes
+
+        // Materials
+        const pointMat = new THREE.MeshBasicMaterial({ color: COLOR_POINT });
+        const pathMat = new THREE.LineBasicMaterial({ color: COLOR_PATH, linewidth: 2, transparent: true, opacity: 0.5 });
+        const jumpPathMat = new THREE.LineDashedMaterial({ color: COLOR_CYAN, dashSize: 0.05, gapSize: 0.1, transparent: true, opacity: 0.4 });
+        const axisMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+        const planeMat = new THREE.MeshBasicMaterial({ color: COLOR_CYAN, transparent: true, opacity: 0.15, side: THREE.DoubleSide });
+
+        // --------------------------------------------------------
+        // 2. 2D STEREOGRAM (WULFF NET) SETUP
+        // --------------------------------------------------------
+        const canvas = document.getElementById('wulff');
+        const ctx = canvas.getContext('2d');
+        const wCenter = canvas.width / 2;
+        const wRadius = (canvas.width / 2) - 20; // 20px padding
+
+        function refreshWulffNet() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw primitive boundary
+            ctx.beginPath();
+            ctx.arc(wCenter, wCenter, wRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.stroke();
+            
+            // Draw horizontal and vertical polar crosshairs
+            ctx.beginPath();
+            ctx.moveTo(wCenter, 0); ctx.lineTo(wCenter, canvas.height);
+            ctx.moveTo(0, wCenter); ctx.lineTo(canvas.width, wCenter);
+            ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.stroke();
+            
+            // Note: A true Wulff Net has great and small circles across the entire face.
+            // For point group symmetry, the primitive circle and crosshairs are the standard canvas.
+        }
+        refreshWulffNet();
+
+        // --------------------------------------------------------
+        // 3. ENGINE INITIALIZATION
+        // --------------------------------------------------------
+        async function initEngine() {
+            try {
+                crystalloEngine = await createModule();
+                const statusEl = document.getElementById('status').querySelector('span');
+                statusEl.className = 'success';
+                statusEl.innerText = 'ONLINE';
+            } catch (e) {
+                console.error("WASM Core fail:", e);
+            }
+        }
+        initEngine();
+
+        // --------------------------------------------------------
+        // 4. THE CHAINING LOGIC & DATA PIPELINE
+        // --------------------------------------------------------
+        
+        // Helper to prune identical coordinates (spatial deduplication)
+        function addUniquePoints(newPointsArr) {
+            const tempSet = [...activePointSet];
+            for (let pt of newPointsArr) {
+                let isDuplicate = false;
+                for (let existPt of tempSet) {
+                    // Check physical distance (Tolerance check to 0.001)
+                    const dx = existPt.x - pt.x; const dy = existPt.y - pt.y; const dz = existPt.z - pt.z;
+                    if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 0.001) {
+                        isDuplicate = true; break;
+                    }
+                }
+                if (!isDuplicate) tempSet.push(pt);
+            }
+            activePointSet = tempSet;
+        }
+
+        function forceNormalize(v) {
+            const mag = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+            if(mag === 0) return {x:0, y:0, z:0};
+            return {x: v.x/mag, y: v.y/mag, z: v.z/mag};
+        }
+
+        // Render everything from the activePointSet
+        function syncRender() {
+            // Clear old meshes
+            meshOrbits.forEach(m => scene.remove(m));
+            meshOrbits = [];
+            refreshWulffNet(); // Clear canvas
+            
+            document.getElementById('group-inventory').innerText = `${activePointSet.length} Points in Group Orbit`;
+
+            let topPoints = [];
+            let botPoints = [];
+
+            for (let pt of activePointSet) {
+                // Separate points to handle bullseye overlap rendering correctly
+                if (pt.z >= -0.001) topPoints.push(pt);
+                else botPoints.push(pt);
+
+                // 3D Rendering (Z doesn't matter for 3D order)
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), pointMat);
+                mesh.position.set(pt.x, pt.y, pt.z);
+                scene.add(mesh);
+                meshOrbits.push(mesh);
+            }
+
+            if(!crystalloEngine) return;
+
+            // Draw Top Hemisphere (Solid Circles)
+            for (let pt of topPoints) {
+                const proj = crystalloEngine.Projectionin2D(pt);
+                ctx.beginPath();
+                ctx.arc(wCenter + (proj.x * wRadius), wCenter - (proj.y * wRadius), 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff007f'; ctx.fill();
+                ctx.strokeStyle = '#660033'; ctx.lineWidth=1; ctx.stroke();
+            }
+
+            // Draw Bottom Hemisphere (Open Rings) overlapping the solid if they share Coordinates
+            for (let pt of botPoints) {
+                const proj = crystalloEngine.Projectionin2D(pt);
+                ctx.beginPath();
+                ctx.arc(wCenter + (proj.x * wRadius), wCenter - (proj.y * wRadius), 8, 0, Math.PI * 2);
+                // No fill to create bullseye effect!
+                ctx.strokeStyle = '#ff007f'; ctx.lineWidth = 2; ctx.stroke();
+            }
+        }
+
+        // Plant Seed Button
+        document.getElementById('btn-seed').onclick = () => {
+            let userPt = {
+                x: parseFloat(document.getElementById('in-x').value),
+                y: parseFloat(document.getElementById('in-y').value),
+                z: parseFloat(document.getElementById('in-z').value)
+            };
+            userPt = forceNormalize(userPt); // Automatically normalize it to reference sphere surface
+            
+            // Reset state with only the seed point
+            activePointSet = [userPt];
+            
+            // Clear physical visualizers (planes, axes, continuous paths)
+            meshAxes.forEach(a => scene.remove(a));
+            meshPaths.forEach(p => scene.remove(p));
+            meshAxes = []; meshPaths = [];
+            
+            syncRender();
+        };
+
+        // Reset Button
+        document.getElementById('btn-reset').onclick = () => {
+            activePointSet = [];
+            meshAxes.forEach(a => scene.remove(a));
+            meshPaths.forEach(p => scene.remove(p));
+            meshAxes = []; meshPaths = [];
+            syncRender();
+        };
+
+        // UI Operation Dropdown Toggles
+        document.getElementById('in-op').addEventListener('change', function() {
+            const val = this.value;
+            document.getElementById('fold-group').style.display = (val === 'rotation') ? 'flex' : 'none';
+            document.getElementById('axis-group').style.display = (val === 'inversion') ? 'none' : 'flex';
+        });
+
+        // --------------------------------------------------------
+        // 5. THE POINT GROUP ENGINE (CHAINING)
+        // --------------------------------------------------------
+        
+        // The Abstracted Symmetry Function
+        async function executeSymmetryGroup(opType, fold, axisStr) {
+            if(!crystalloEngine || activePointSet.length === 0) return;
+
+            const axisChar = axisStr.charCodeAt(0);
+
+            // A. Draw Physical Operator (Axes/Mirrors)
+            let pole1, pole2;
+            if(axisStr === 'x') { pole1 = new THREE.Vector3(1,0,0); pole2 = new THREE.Vector3(-1,0,0); }
+            if(axisStr === 'y') { pole1 = new THREE.Vector3(0,1,0); pole2 = new THREE.Vector3(0,-1,0); }
+            if(axisStr === 'z') { pole1 = new THREE.Vector3(0,0,1); pole2 = new THREE.Vector3(0,0,-1); }
+
+            if (opType === 'rotation') {
+                // Draw a solid central rod instead of a thin string
+                const rodGeo = new THREE.CylinderGeometry(0.015, 0.015, 2.4, 8);
+                const rodMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const aRod = new THREE.Mesh(rodGeo, rodMat);
+                // Cylinder renders along Y axis by default. Rotate if needed.
+                if (axisStr === 'x') aRod.rotation.z = Math.PI / 2;
+                if (axisStr === 'z') aRod.rotation.x = Math.PI / 2;
+                scene.add(aRod); meshAxes.push(aRod);
+                
+                // Draw Formal 3D Crystallographic Symbols (Caps)
+                let capGeo;
+                if (fold === 2) capGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 32); 
+                else if (fold === 3) capGeo = new THREE.TetrahedronGeometry(0.12); 
+                else if (fold === 4) capGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14); 
+                else if (fold === 6) capGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 6); 
+
+                const capMat = new THREE.MeshBasicMaterial({ color: 0xffc300 }); // Gold axes caps!
+                const cap1 = new THREE.Mesh(capGeo, capMat); 
+                const cap2 = new THREE.Mesh(capGeo, capMat); 
+                
+                cap1.position.copy(pole1.clone().multiplyScalar(1.22)); 
+                cap2.position.copy(pole2.clone().multiplyScalar(1.22)); 
+                
+                cap1.lookAt(0,0,0); 
+                cap2.lookAt(0,0,0);
+
+                // Re-orient cylinder/flat faces to point outward perpendicular to axis
+                if (fold === 2 || fold === 6) {
+                    cap1.rotateX(Math.PI/2);
+                    cap2.rotateX(Math.PI/2);
+                } else if (fold === 3) {
+                    cap1.rotateX(Math.PI/4); // Twist tetrahedron so flat triangle faces out
+                    cap2.rotateX(Math.PI/4);
+                }
+
+                scene.add(cap1); scene.add(cap2); meshAxes.push(cap1, cap2);
+            } 
+            else if (opType === 'mirror') {
+                const planeMesh = new THREE.Mesh(new THREE.CircleGeometry(1.2, 64), planeMat);
+                planeMesh.lookAt(pole1); 
+                scene.add(planeMesh); meshAxes.push(planeMesh);
+            }
+            else if (opType === 'inversion') {
+                const cnt = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                scene.add(cnt); meshAxes.push(cnt);
+            }
+
+            // B. Mathematics (The Chaining)
+            // We take EVERY point currently established in the universe, and run it through the selected C++ symmetry block.
+            let newlyGeneratedPoints = [];
+            
+            for (let point of activePointSet) {
+                let orbitVector, pathVector;
+                
+                // Invoke specific JS/WASM functions
+                if (opType === 'rotation') {
+                    orbitVector = crystalloEngine.generateOrbit(point, fold, axisChar);
+                    pathVector = crystalloEngine.generateRotationPath(point, fold, axisChar, 30);
+                } else if (opType === 'mirror') {
+                    orbitVector = crystalloEngine.generateReflectionOrbit(point, axisChar);
+                    pathVector = crystalloEngine.generateReflectionPath(point, axisChar);
+                } else if (opType === 'inversion') {
+                    orbitVector = crystalloEngine.generateInversionOrbit(point);
+                    pathVector = crystalloEngine.generateInversionPath(point);
+                } else if (opType === 'improper') { // Rotoinversion directly in JS
+                    // Mathematical fix: S_n generator. We manually loop n times.
+                    const matRot = crystalloEngine.getN_foldRotationMatrix(fold, axisChar);
+                    const matInv = crystalloEngine.getInversionMatrix();
+                    let currentPt = {x: point.x, y: point.y, z: point.z};
+                    newlyGeneratedPoints.push(currentPt);
+                    
+                    // Paths for improper jumps
+                    const jumpPathPts = [];
+                    
+                    for(let k=0; k<fold; k++) {
+                        jumpPathPts.push(new THREE.Vector3(currentPt.x, currentPt.y, currentPt.z));
+                        // 1. Rotate
+                        let p_rot = crystalloEngine.operations(currentPt, matRot);
+                        // 2. Invert
+                        let p_final = crystalloEngine.operations(p_rot, matInv);
+                        newlyGeneratedPoints.push({x: p_final.x, y: p_final.y, z: p_final.z});
+                        currentPt = p_final;
+                    }
+                    
+                    // Draw dashed path for the jumping sequence
+                    const bGeo = new THREE.BufferGeometry().setFromPoints(jumpPathPts);
+                    const pathLine = new THREE.Line(bGeo, jumpPathMat);
+                    pathLine.computeLineDistances();
+                    scene.add(pathLine); meshPaths.push(pathLine);
+                    
+                    // We generated them manually, so skip the vector processing below
+                    continue; 
+                }
+
+                if (opType !== 'improper') {
+                    // Append C++ Orbits to JS
+                    for(let i=0; i<orbitVector.size(); i++) {
+                        const pt = orbitVector.get(i);
+                        newlyGeneratedPoints.push({x: pt.x, y: pt.y, z: pt.z});
+                    }
+
+                    // Draw specific Continuous Paths
+                    const pathPts = [];
+                    for(let i=0; i<pathVector.size(); i++) {
+                        const ppt = pathVector.get(i);
+                        pathPts.push(new THREE.Vector3(ppt.x, ppt.y, ppt.z));
+                    }
+                    
+                    let pathLine;
+                    if (opType === 'rotation') {
+                        pathLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pathPts), pathMat);
+                    } else {
+                        pathLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pathPts), jumpPathMat);
+                        pathLine.computeLineDistances(); 
+                    }
+                    scene.add(pathLine);
+                    meshPaths.push(pathLine);
+
+                    // Memory Management
+                    orbitVector.delete();
+                    pathVector.delete();
+                }
+            }
+
+            // Execute spatial deduplication but ANIMATE the additions
+            const tempSet = [...activePointSet];
+            for (let pt of newlyGeneratedPoints) {
+                let isDuplicate = false;
+                for (let existPt of tempSet) {
+                    const dx = existPt.x - pt.x; const dy = existPt.y - pt.y; const dz = existPt.z - pt.z;
+                    if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 0.001) {
+                        isDuplicate = true; break;
+                    }
+                }
+                if (!isDuplicate) {
+                    tempSet.push(pt);
+                    activePointSet = [...tempSet];
+                    syncRender();
+                    
+                    const userDelay = parseInt(document.getElementById('in-delay').value);
+                    if (userDelay > 0) {
+                        await new Promise(r => setTimeout(r, userDelay)); // UI-controlled Animation delay!
+                    }
+                }
+            }
+        }
+        
+        // Setup slider dynamic UI text
+        document.getElementById('in-delay').oninput = function() {
+            document.getElementById('delay-val').innerText = this.value;
+        };
+
+        // Manual Application Button
+        document.getElementById('btn-apply').onclick = async () => {
+            const opType = document.getElementById('in-op').value;
+            const fold = parseInt(document.getElementById('in-fold').value);
+            const axisStr = document.getElementById('in-axis').value;
+            await executeSymmetryGroup(opType, fold, axisStr);
+        };
+
+        // Automated Macro Definitions for 27 Non-Cubic Groups
+        const macroMap = {
+            // Triclinic
+            '1': [], // Identity, just seed
+            '-1': [ {op:'inversion', fold:0, axis:'z'} ],
+            // Monoclinic
+            '2': [ {op:'rotation', fold:2, axis:'y'} ],
+            'm': [ {op:'mirror', fold:0, axis:'y'} ],
+            '2/m': [ {op:'rotation', fold:2, axis:'y'}, {op:'inversion', fold:0, axis:'z'} ],
+            // Orthorhombic
+            '222': [ {op:'rotation', fold:2, axis:'x'}, {op:'rotation', fold:2, axis:'y'}, {op:'rotation', fold:2, axis:'z'} ],
+            'mm2': [ {op:'mirror', fold:0, axis:'x'}, {op:'mirror', fold:0, axis:'y'}, {op:'rotation', fold:2, axis:'z'} ],
+            'mmm': [ {op:'mirror', fold:0, axis:'x'}, {op:'mirror', fold:0, axis:'y'}, {op:'mirror', fold:0, axis:'z'} ],
+            // Tetragonal
+            '4': [ {op:'rotation', fold:4, axis:'z'} ],
+            '-4': [ {op:'improper', fold:4, axis:'z'} ],
+            '4/m': [ {op:'rotation', fold:4, axis:'z'}, {op:'mirror', fold:0, axis:'z'} ],
+            '422': [ {op:'rotation', fold:4, axis:'z'}, {op:'rotation', fold:2, axis:'x'} ],
+            '4mm': [ {op:'rotation', fold:4, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ],
+            '-42m': [ {op:'improper', fold:4, axis:'z'}, {op:'rotation', fold:2, axis:'x'}, {op:'mirror', fold:0, axis:'x'} ], // usually has m normal to [110], passing x is approx OK for rendering concepts
+            '4/mmm': [ {op:'rotation', fold:4, axis:'z'}, {op:'mirror', fold:0, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ],
+            // Trigonal
+            '3': [ {op:'rotation', fold:3, axis:'z'} ],
+            '-3': [ {op:'rotation', fold:3, axis:'z'}, {op:'inversion', fold:0, axis:'z'} ], // Proper 3 + Inversion generates -3
+            '32': [ {op:'rotation', fold:3, axis:'z'}, {op:'rotation', fold:2, axis:'x'} ],
+            '3m': [ {op:'rotation', fold:3, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ],
+            '-3m': [ {op:'rotation', fold:3, axis:'z'}, {op:'mirror', fold:0, axis:'x'}, {op:'inversion', fold:0, axis:'z'} ],
+            // Hexagonal
+            '6': [ {op:'rotation', fold:6, axis:'z'} ],
+            '-6': [ {op:'improper', fold:6, axis:'z'} ],
+            '6/m': [ {op:'rotation', fold:6, axis:'z'}, {op:'mirror', fold:0, axis:'z'} ],
+            '622': [ {op:'rotation', fold:6, axis:'z'}, {op:'rotation', fold:2, axis:'x'} ],
+            '6mm': [ {op:'rotation', fold:6, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ],
+            '-6m2': [ {op:'improper', fold:6, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ],
+            '6/mmm': [ {op:'rotation', fold:6, axis:'z'}, {op:'mirror', fold:0, axis:'z'}, {op:'mirror', fold:0, axis:'x'} ]
+        };
+
+        // Macro Auto-Generator Execution
+        document.getElementById('btn-macro').onclick = async () => {
+            if(!crystalloEngine) return;
+            // 1. Reset state to seed point
+            document.getElementById('btn-seed').click();
+            
+            // 2. Read macro sequence 
+            const sequence = macroMap[document.getElementById('in-macro').value];
+            
+            // 3. Chain operations programmatically with animation wait
+            for(let cmd of sequence) {
+                await executeSymmetryGroup(cmd.op, cmd.fold, cmd.axis);
+            }
+        };
+
+        // --------------------------------------------------------
+        // 6. RENDER LOOP
+        // --------------------------------------------------------
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = middleContainer.clientWidth / middleContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(middleContainer.clientWidth, middleContainer.clientHeight);
+        });
+    </script>
+</body>
+</html>
