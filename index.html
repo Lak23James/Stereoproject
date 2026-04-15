@@ -256,6 +256,33 @@
         const mainRings = new THREE.LineSegments(mainRingsGeo, new THREE.LineBasicMaterial({color: COLOR_CYAN, opacity: 0.4, transparent: true}));
         scene.add(mainRings); // A more subtle way to show the prime axes
 
+        // Persistent Labeled Axes (Single Color)
+        function createTextSprite(message, colorStr) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const context = canvas.getContext('2d');
+            context.font = "bold 36px 'Segoe UI', Arial";
+            context.fillStyle = colorStr;
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(message, 32, 32);
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(0.25, 0.25, 0.25);
+            return sprite;
+        }
+
+        const customAxisMat = new THREE.LineDashedMaterial({ color: 0x66fcf1, dashSize: 0.05, gapSize: 0.05, transparent: true, opacity: 0.8 });
+        const xLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(1.5,0,0)]), customAxisMat); xLine.computeLineDistances();
+        const yLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,1.5,0)]), customAxisMat); yLine.computeLineDistances();
+        const zLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,1.5)]), customAxisMat); zLine.computeLineDistances();
+        scene.add(xLine, yLine, zLine);
+
+        const xLabel = createTextSprite("X", "#66fcf1"); xLabel.position.set(1.65, 0, 0); scene.add(xLabel);
+        const yLabel = createTextSprite("Z", "#66fcf1"); yLabel.position.set(0, 1.65, 0); scene.add(yLabel); // Z is now Up
+        const zLabel = createTextSprite("Y", "#66fcf1"); zLabel.position.set(0, 0, 1.65); scene.add(zLabel); // Y is now Out
+
         // Materials
         const pointMat = new THREE.MeshBasicMaterial({ color: COLOR_POINT });
         const pathMat = new THREE.LineBasicMaterial({ color: COLOR_PATH, linewidth: 2, transparent: true, opacity: 0.5 });
