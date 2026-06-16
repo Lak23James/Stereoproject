@@ -15,6 +15,7 @@ Designed with a strict separation of concerns, the core physics and matrix mathe
 * **27 Automated Point Groups:** Instant generation of all non-cubic crystallographic point groups (Triclinic, Monoclinic, Orthorhombic, Tetragonal, Trigonal, Hexagonal).
 * **Hemisphere Tracking:** Automatically distinguishes between Northern hemisphere points (rendered as solid dots) and Southern hemisphere points (rendered as open rings) on the Wulff Net using $X = x / (1 \pm z)$ logic.
 * **Symmetry Chaining:** Manually chain primitive operations to build complex group orbits step-by-step.
+<img width="1542" height="867" alt="image" src="https://github.com/user-attachments/assets/9b947dee-e0e5-44e4-bf90-3a2e207e6e22" />
 
 ---
 
